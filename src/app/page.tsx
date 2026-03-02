@@ -1,65 +1,111 @@
-import Image from "next/image";
+import TicketGrid from '@/components/TicketGrid'
+import { Trophy, CheckCircle, Smartphone } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="bg-[#0A0A0A]">
+      {/* HERO SECTION - Ajustada nativamente (Sem Scale forçado) */}
+      <section className="relative min-h-[85vh] lg:min-h-[75vh] flex flex-col items-center justify-center overflow-hidden pt-24 pb-12 lg:pt-28 lg:pb-16">
+        {/* Sem Background Overlay - Fundo Limpo */}
+
+        <div className="container relative z-20 mx-auto px-4 mt-4 md:mt-6">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center max-w-7xl mx-auto">
+
+            {/* LADO ESQUERDO: Textos e CTA */}
+            <div className="order-1 text-center lg:text-left flex flex-col items-center lg:items-start">
+              <span className="inline-table py-1.5 px-5 border border-brand text-brand font-bold uppercase tracking-widest text-xs lg:text-sm rounded-full mb-6 bg-brand/10 backdrop-blur-sm shadow-[0_0_15px_rgba(212,0,0,0.3)] animate-pulse whitespace-nowrap">
+                Sorteio Especial da Barbearia
+              </span>
+
+              <h1 className="font-montserrat font-black text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white uppercase leading-[1.05] mb-5 tracking-tight drop-shadow-lg">
+                Ganhe um <span className="text-gradient-gold">PS5</span> <br className="hidden md:block" />
+                ou <span className="text-brand">R$ 1.500</span> <br className="hidden lg:block" /> no Pix
+              </h1>
+
+              <p className="text-lg md:text-xl lg:text-lg text-gray-300 font-inter max-w-xl mb-8 leading-relaxed">
+                Apenas 350 números disponíveis. Escolha o seu e concorra agora mesmo com total transparência e segurança.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-5 mb-10 w-full sm:w-auto">
+                <a href="#tickets" className="bg-gradient-gold text-black font-montserrat font-black uppercase tracking-wider px-8 py-4 lg:px-10 lg:py-4 rounded hover:-translate-y-1 transition-transform duration-300 w-full sm:w-auto text-base lg:text-lg hover:shadow-[0_0_30px_rgba(212,175,55,0.6)] text-center">
+                  GARANTIR MEU NÚMERO
+                </a>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 lg:gap-6 text-xs lg:text-[11px] xl:text-xs font-bold text-gray-400 font-montserrat uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-accent" />
+                  Entrega Garantida
+                </div>
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-brand" />
+                  Loteria Federal
+                </div>
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-accent" />
+                  Pix na hora
+                </div>
+              </div>
+            </div>
+
+            {/* LADO DIREITO: Imagens dos Prêmios */}
+            <div className="order-2 relative flex justify-center items-center group mt-10 lg:mt-0">
+              {/* Efeito de brilho de fundo */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-brand/20 blur-[100px] rounded-full pointer-events-none"></div>
+
+              {/* Container da Imagem Central */}
+              <div className="relative z-10 w-full max-w-sm lg:max-w-md xl:max-w-[400px] mx-auto aspect-square bg-[#111] rounded-3xl border-2 border-brand shadow-[0_0_50px_rgba(212,0,0,0.3)] overflow-hidden transition-transform duration-500 hover:scale-105 group">
+                {/* Foto enviada pelo cliente */}
+                <img
+                  src="/nova-foto-premio.png"
+                  alt="Playstation 5 e Pix"
+                  className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/90 to-transparent p-5 text-center">
+                  <span className="font-montserrat font-black text-2xl xl:text-3xl text-accent uppercase tracking-widest drop-shadow-md">PS5 1TB</span>
+                  <p className="text-white font-bold text-xs xl:text-sm uppercase mt-1 tracking-widest">OU R$ 1.500 NO PIX</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* CUIDADO: Red Bottom Border Line. Posição fixa bottom-0 sem interferência. */}
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand to-transparent z-20"></div>
+      </section>
+
+      {/* TICKETS SECTION */}
+      <section className="py-24 relative" id="tickets">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="font-montserrat font-black text-4xl md:text-6xl text-white uppercase tracking-tight mb-4">
+              Escolha seus <span className="text-brand">números</span>
+            </h2>
+            <div className="w-24 h-1 bg-accent mx-auto mb-6"></div>
+            <p className="text-gray-400 font-inter text-lg">
+              Clique nos números abaixo para selecionar. R$ 15,00 cada cota.
+            </p>
+          </div>
+
+          <TicketGrid />
+        </div>
+      </section>
+
+      {/* CALL TO ACTION SECTION */}
+      <section className="py-20 border-t border-white/5 bg-[#111]">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="font-montserrat font-black text-3xl md:text-5xl text-white uppercase mb-8">
+            Não fique de fora dessa <span className="text-accent">oportunidade</span>
+          </h2>
+          <p className="text-gray-400 font-inter max-w-2xl mx-auto mb-10 text-lg">
+            A qualquer momento todos os números podem esgotar. O pagamento é processado instantaneamente e sua participação é confirmada na hora via sistema seguro.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+          <a href="#tickets" className="inline-block bg-brand text-white font-montserrat font-black uppercase tracking-wider px-12 py-5 rounded shadow-[0_0_20px_rgba(212,0,0,0.4)] hover:bg-brand-hover hover:-translate-y-1 transition-all duration-300">
+            COMPRAR AGORA
           </a>
         </div>
-      </main>
+      </section>
     </div>
-  );
+  )
 }

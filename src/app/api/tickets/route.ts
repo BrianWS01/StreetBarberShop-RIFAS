@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/tickets — retorna status atual de todos os tickets da rifa ativa
 // Usado pelo TicketGrid para refresh em tempo real
 export async function GET(request: NextRequest) {

@@ -1,4 +1,4 @@
-import { PrismaClient, RaffleStatus, TicketStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,7 +12,7 @@ async function main() {
             prize: "PS5 ou R$ 1.500 no Pix",
             pricePerTicket: 15.0,
             totalTickets: 350,
-            status: RaffleStatus.ACTIVE,
+            status: "ACTIVE",
         },
     });
 
@@ -22,7 +22,7 @@ async function main() {
     console.log("Gerando 350 bilhetes...");
     const ticketsData = Array.from({ length: 350 }, (_, i) => ({
         number: i + 1,
-        status: TicketStatus.AVAILABLE,
+        status: "AVAILABLE" as const,
         raffleId: raffle.id,
     }));
 

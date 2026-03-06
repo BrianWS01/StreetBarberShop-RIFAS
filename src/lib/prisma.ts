@@ -10,10 +10,11 @@ function createPrismaClient() {
   const url = process.env.DATABASE_URL;
 
   // Se não houver URL (comum durante o build se não configurado no painel), 
-  // retornamos o PrismaClient padrão para não travar a compilação do Next.js
+  // retornamos o PrismaClient com o adapter e uma URL dummy para não travar a compilação
   if (!url) {
-    console.warn('⚠️ DATABASE_URL não definida. As queries de banco falharão em runtime.');
-    return new PrismaClient();
+    console.warn('⚠️ DATABASE_URL não definida. Usando URL dummy para o build.');
+    const dummyAdapter = new PrismaMariaDb('mysql://localhost:3306/unused');
+    return new PrismaClient({ adapter: dummyAdapter });
   }
 
   // Passamos a URL diretamente — PrismaMariaDb aceita string

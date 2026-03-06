@@ -1,20 +1,21 @@
+'use client'
+
 import type { Metadata } from 'next'
 import { Inter, Montserrat } from 'next/font/google'
 import './globals.css'
+import { useState } from 'react'
+import MyNumbersModal from '@/components/MyNumbersModal'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const montserrat = Montserrat({ subsets: ['latin'], variable: '--font-montserrat' })
-
-export const metadata: Metadata = {
-  title: 'Rifa Premium | PS5 ou R$ 1.500 no PIX',
-  description: 'Participe da nossa rifa e concorra a um Playstation 5 ou R$ 1.500 na sua conta!',
-}
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const [isMyNumbersOpen, setIsMyNumbersOpen] = useState(false)
+
   return (
     <html lang="pt-BR" className="dark scroll-smooth">
       <body className={`${inter.variable} ${montserrat.variable} font-sans min-h-screen flex flex-col`}>
@@ -27,10 +28,20 @@ export default function RootLayout({
             <nav className="flex items-center gap-6 font-montserrat font-bold text-sm">
               <a href="#about" className="hover:text-accent transition-colors hidden md:block">Sobre</a>
               <a href="#tickets" className="hover:text-accent transition-colors hidden md:block">Números</a>
-              <button className="bg-gradient-gold px-4 py-2 rounded uppercase text-black">Login</button>
+              <button
+                onClick={() => setIsMyNumbersOpen(true)}
+                className="bg-brand/10 border border-brand/50 px-4 py-2 rounded uppercase text-brand font-black hover:bg-brand/20 transition-all"
+              >
+                Meus Números
+              </button>
             </nav>
           </div>
         </header>
+
+        <MyNumbersModal
+          isOpen={isMyNumbersOpen}
+          onClose={() => setIsMyNumbersOpen(false)}
+        />
 
         <main className="flex-1 w-full">
           {children}

@@ -8,7 +8,13 @@ declare global {
 
 function createPrismaClient() {
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL não definida');
+
+  // Se não houver URL (comum durante o build se não configurado no painel), 
+  // retornamos o PrismaClient padrão para não travar a compilação do Next.js
+  if (!url) {
+    console.warn('⚠️ DATABASE_URL não definida. As queries de banco falharão em runtime.');
+    return new PrismaClient();
+  }
 
   // Passamos a URL diretamente — PrismaMariaDb aceita string
   // O adapter gerencia o pool internamente

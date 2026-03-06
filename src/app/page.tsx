@@ -1,7 +1,24 @@
 import TicketGrid from '@/components/TicketGrid'
 import { Trophy, CheckCircle, Smartphone } from 'lucide-react'
+import prisma from '@/lib/prisma'
 
-export default function Home() {
+export default async function Home() {
+  const raffle = await prisma.raffle.findFirst({
+    where: { status: 'ACTIVE' },
+    include: {
+      tickets: {
+        orderBy: { number: 'asc' }
+      }
+    }
+  })
+
+  if (!raffle) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        <p className="text-xl font-montserrat">Nenhuma rifa ativa no momento.</p>
+      </div>
+    )
+  }
   return (
     <div className="bg-[#0A0A0A]">
       {/* HERO SECTION - Ajustada nativamente (Sem Scale forçado) */}
@@ -84,11 +101,14 @@ export default function Home() {
             </h2>
             <div className="w-24 h-1 bg-accent mx-auto mb-6"></div>
             <p className="text-gray-400 font-inter text-lg">
-              Clique nos números abaixo para selecionar. R$ 15,00 cada cota.
+              Clique nos números abaixo para selecionar. {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(raffle.pricePerTicket))} cada cota.
             </p>
           </div>
 
-          <TicketGrid />
+          <TicketGrid
+            raffle={{ ...raffle, pricePerTicket: Number(raffle.pricePerTicket) }}
+            tickets={raffle.tickets}
+          />
         </div>
       </section>
 

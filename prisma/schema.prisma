@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -7,83 +8,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String   @unique
-  role      Role     @default(USER)
-  tickets   Ticket[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-model Raffle {
-  id             String   @id @default(cuid())
+model raffle {
+  id             String        @id
   title          String
   prize          String
-  pricePerTicket Decimal  @db.Decimal(10, 2)
+  pricePerTicket Decimal       @db.Decimal(10, 2)
   totalTickets   Int
-  status         RaffleStatus @default(DRAFT)
+  status         raffle_status @default(DRAFT)
   winnerNumber   Int?
-  tickets        Ticket[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime
+  ticket         ticket[]
 }
 
-enum RaffleStatus {
-  DRAFT
-  ACTIVE
-  FINISHED
-}
-
-model Ticket {
-  id            String   @id @default(cuid())
+model ticket {
+  id            String        @id
   number        Int
-  status        TicketStatus @default(AVAILABLE)
-  
+  status        ticket_status @default(AVAILABLE)
   raffleId      String
-  raffle        Raffle   @relation(fields: [raffleId], references: [id], onDelete: Cascade)
-  
   userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
   transactionId String?
-  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-
   reservedAt    DateTime?
   paidAt        DateTime?
-  
-  @@unique([raffleId, number])
+  raffle        raffle        @relation(fields: [raffleId], references: [id], onDelete: Cascade, map: "Ticket_raffleId_fkey")
+  transaction   transaction?  @relation(fields: [transactionId], references: [id], map: "Ticket_transactionId_fkey")
+  user          user?         @relation(fields: [userId], references: [id], map: "Ticket_userId_fkey")
+
+  @@unique([raffleId, number], map: "Ticket_raffleId_number_key")
+  @@index([transactionId], map: "Ticket_transactionId_fkey")
+  @@index([userId], map: "Ticket_userId_fkey")
 }
 
-enum TicketStatus {
+model transaction {
+  id           String             @id
+  externalId   String?            @unique(map: "Transaction_externalId_key")
+  amount       Decimal            @db.Decimal(10, 2)
+  status       transaction_status @default(PENDING)
+  qrCode       String?            @db.Text
+  qrCodeBase64 String?            @db.Text
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime
+  ticket       ticket[]
+}
+
+model user {
+  id        String    @id
+  name      String
+  phone     String    @unique(map: "User_phone_key")
+  role      user_role @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  ticket    ticket[]
+}
+
+enum ticket_status {
   AVAILABLE
   RESERVED
   PAID
 }
 
-model Transaction {
-  id           String   @id @default(cuid())
-  externalId   String?  @unique
-  amount       Decimal  @db.Decimal(10, 2)
-  status       PaymentStatus @default(PENDING)
-  qrCode       String?  @db.Text
-  qrCodeBase64 String?  @db.Text
-  
-  tickets      Ticket[]
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-enum PaymentStatus {
+enum transaction_status {
   PENDING
   PAID
   FAILED
   EXPIRED
+}
+
+enum user_role {
+  USER
+  ADMIN
+}
+
+enum raffle_status {
+  DRAFT
+  ACTIVE
+  FINISHED
 }

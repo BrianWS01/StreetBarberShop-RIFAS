@@ -65,18 +65,14 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// PATCH /api/admin/draw — altera status da rifa manualmente
+// PATCH /api/admin/draw — altera status ou dados da rifa manualmente
 export async function PATCH(request: NextRequest) {
     if (!isAuthorized(request)) {
         return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
     }
 
     try {
-        const { status } = await request.json()
-
-        if (!['ACTIVE', 'DRAFT', 'FINISHED'].includes(status)) {
-            return NextResponse.json({ error: 'Status inválido.' }, { status: 400 })
-        }
+        const { status, title, price } = await request.json()
 
         const raffle = await prisma.raffle.findFirst({
             orderBy: { createdAt: 'desc' },
@@ -86,14 +82,24 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: 'Nenhuma rifa encontrada.' }, { status: 404 })
         }
 
+        const data: any = {}
+        if (status) {
+            if (!['ACTIVE', 'DRAFT', 'FINISHED'].includes(status)) {
+                return NextResponse.json({ error: 'Status inválido.' }, { status: 400 })
+            }
+            data.status = status
+        }
+        if (title) data.title = title
+        if (price !== undefined) data.pricePerTicket = price
+
         await prisma.raffle.update({
             where: { id: raffle.id },
-            data: { status },
+            data,
         })
 
-        return NextResponse.json({ success: true, newStatus: status })
+        return NextResponse.json({ success: true, newStatus: status, newTitle: title, newPrice: price })
     } catch (error) {
-        console.error('[STATUS CHANGE ERROR]', error)
-        return NextResponse.json({ error: 'Erro ao alterar status.' }, { status: 500 })
+        console.error('[RAFFLE UPDATE ERROR]', error)
+        return NextResponse.json({ error: 'Erro ao atualizar rifa.' }, { status: 500 })
     }
 }

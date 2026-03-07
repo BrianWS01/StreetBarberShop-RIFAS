@@ -10,8 +10,10 @@ import {
 interface Stats {
     raffleTitle: string
     raffleStatus: string
+    rafflePrice: number
     totalTickets: number
     winnerNumber: number | null
+
     ticketsByStatus: { AVAILABLE?: number; RESERVED?: number; PAID?: number }
     revenue: number
     pendingTransactions: number
@@ -53,8 +55,11 @@ export default function AdminPage() {
     const [drawing, setDrawing] = useState(false)
     const [drawResult, setDrawResult] = useState<{ winnerNumber: number; winner: { name: string; phone: string } | null } | null>(null)
     const [statusChanging, setStatusChanging] = useState(false)
+    const [editModalOpen, setEditModalOpen] = useState(false)
+    const [editForm, setEditForm] = useState({ title: '', price: 0 })
 
     const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
 
     const fetchStats = useCallback(async (adminSecret: string) => {
         setLoading(true)
@@ -128,6 +133,27 @@ export default function AdminPage() {
             setStatusChanging(false)
         }
     }
+
+    const handleUpdateRaffle = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        try {
+            const res = await fetch('/api/admin/draw', {
+                method: 'PATCH',
+                headers: { 'x-admin-secret': secret, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: editForm.title, price: editForm.price }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error)
+            setEditModalOpen(false)
+            fetchStats(secret)
+        } catch (e: any) {
+            alert('Erro: ' + e.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
 
     // TELA DE LOGIN
     if (!authed) {
@@ -222,6 +248,15 @@ export default function AdminPage() {
                             )}
                         </div>
                         <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => {
+                                    setEditForm({ title: stats.raffleTitle, price: stats.rafflePrice })
+                                    setEditModalOpen(true)
+                                }}
+                                className="flex items-center gap-2 bg-white/5 border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-montserrat font-bold hover:bg-white/10 transition-colors"
+                            >
+                                <RefreshCw className="w-4 h-4" /> Editar Rifa
+                            </button>
                             {stats.raffleStatus === 'DRAFT' && (
                                 <button onClick={() => handleStatusChange('ACTIVE')} disabled={statusChanging}
                                     className="flex items-center gap-2 bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-2 rounded-lg text-sm font-montserrat font-bold hover:bg-green-500/30 transition-colors">
@@ -242,6 +277,7 @@ export default function AdminPage() {
                                 </>
                             )}
                         </div>
+
                     </div>
                 )}
 
@@ -264,6 +300,63 @@ export default function AdminPage() {
                             )}
                             <button onClick={() => setDrawResult(null)} className="mt-4 text-gray-500 text-sm underline">Fechar</button>
                         </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Modal de Edição */}
+                <AnimatePresence>
+                    {editModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                onClick={() => setEditModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                                className="relative bg-[#111] border-2 border-brand rounded-2xl p-8 w-full max-w-md shadow-2xl"
+                            >
+                                <h2 className="font-montserrat font-black text-xl text-white uppercase mb-6">Editar Rifa</h2>
+                                <form onSubmit={handleUpdateRaffle} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Título da Rifa</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.title}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                                            className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-brand outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Preço por Cota (R$)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.price}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
+                                            className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-brand outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditModalOpen(false)}
+                                            className="flex-1 border border-white/10 text-white font-bold py-3 rounded-lg hover:bg-white/5 transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="flex-1 bg-gradient-gold text-black font-black uppercase py-3 rounded-lg hover:scale-[1.02] transition-transform disabled:opacity-50"
+                                        >
+                                            {loading ? 'Salvando...' : 'Salvar'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
 

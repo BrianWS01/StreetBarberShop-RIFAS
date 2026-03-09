@@ -19,7 +19,7 @@ export async function GET(
         const transaction = await prisma.transaction.findUnique({
             where: { id: transactionId },
             include: {
-                tickets: {
+                ticket: {
                     select: { number: true, status: true },
                     orderBy: { number: 'asc' },
                 },
@@ -34,7 +34,7 @@ export async function GET(
             transactionId: transaction.id,
             status: transaction.status, // PENDING | PAID | FAILED | EXPIRED
             amount: Number(transaction.amount),
-            tickets: transaction.tickets,
+            tickets: transaction.ticket,
             createdAt: transaction.createdAt,
         });
     } catch (error) {

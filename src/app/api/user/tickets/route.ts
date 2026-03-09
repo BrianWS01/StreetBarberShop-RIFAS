@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Busca o usuário pelo telefone
-        const user = await (prisma.user as any).findUnique({
+        const user = await prisma.user.findUnique({
             where: { phone },
             include: {
-                tickets: {
+                ticket: {
                     include: {
                         raffle: {
                             select: { title: true }
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Formata os dados para o front-end
-        const userTickets = user.tickets || [];
+        const userTickets = user.ticket || [];
         const formattedTickets = userTickets.map((t: any) => ({
             number: t.number,
             status: t.status,

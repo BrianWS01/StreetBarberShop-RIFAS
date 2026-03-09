@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import mariadb from 'mariadb';
+import * as mariadb from 'mariadb';
 
 // Singleton global para evitar múltiplas conexões em desenvolvimento
 declare global {

@@ -9,18 +9,30 @@ declare global {
 function createPrismaClient() {
   const url = process.env.DATABASE_URL;
 
-  // Se não houver URL (comum durante o build se não configurado no painel), 
-  // retornamos o PrismaClient com o adapter e uma URL dummy para não travar a compilação
   if (!url) {
-    console.warn('⚠️ DATABASE_URL não definida. Usando URL dummy para o build.');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ ERRO CRÍTICO: DATABASE_URL não definida em produção!');
+    } else {
+      console.warn('⚠️ DATABASE_URL não definida. Usando URL dummy para o build/dev.');
+    }
     const dummyAdapter = new PrismaMariaDb('mysql://localhost:3306/unused');
     return new PrismaClient({ adapter: dummyAdapter });
   }
 
-  // Passamos a URL diretamente — PrismaMariaDb aceita string
-  // O adapter gerencia o pool internamente
-  const adapter = new PrismaMariaDb(url);
-  return new PrismaClient({ adapter });
+  try {
+    // Para Aiven MySQL, o motor nativo do Prisma (Rust) é mais estável com SSL
+    // do que o driver mariadb-connector-js através do adapter.
+    if (url.includes('aivencloud.com') || url.includes('ssl-mode=')) {
+      return new PrismaClient();
+    }
+
+    const adapter = new PrismaMariaDb(url);
+    return new PrismaClient({ adapter });
+  } catch (error) {
+    console.error('❌ Erro ao inicializar Prisma:', error);
+    // Fallback para o cliente padrão se o adapter falhar
+    return new PrismaClient();
+  }
 }
 
 const prisma = globalThis.prismaGlobal ?? createPrismaClient();

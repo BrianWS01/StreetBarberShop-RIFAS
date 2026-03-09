@@ -59,10 +59,15 @@ export async function POST(request: NextRequest) {
             // --- Cria ou busca o usuário pelo telefone ---
             const user = await tx.user.upsert({
                 where: { phone: phoneClean },
-                update: { name: buyerName.trim() },
+                update: {
+                    name: buyerName.trim(),
+                    updatedAt: new Date()
+                },
                 create: {
+                    id: crypto.randomUUID(),
                     name: buyerName.trim(),
                     phone: phoneClean,
+                    updatedAt: new Date()
                 },
             });
 
@@ -72,8 +77,10 @@ export async function POST(request: NextRequest) {
             // --- Cria a Transaction no banco (ainda sem o ID do MP) ---
             const transaction = await tx.transaction.create({
                 data: {
+                    id: crypto.randomUUID(),
                     amount: totalAmount,
                     status: 'PENDING',
+                    updatedAt: new Date()
                 },
             });
 

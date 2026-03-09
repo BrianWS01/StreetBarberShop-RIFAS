@@ -30,16 +30,18 @@ function createPrismaClient(): PrismaClient {
 
     const urlObj = new URL(url);
 
+    const dbName = urlObj.pathname.replace('/', '') || 'test';
+    console.log(`🔌 [PRISMA] Conectando ao banco: ${dbName} no host: ${urlObj.hostname}`);
+
     // Configuração do pool com foco em segurança e resiliência total
     const pool = mariadb.createPool({
       host: urlObj.hostname,
       port: parseInt(urlObj.port) || 4000,
       user: decodeURIComponent(urlObj.username),
       password: decodeURIComponent(urlObj.password),
-      database: urlObj.pathname.replace('/', ''),
-      connectionLimit: 10,
-      idleTimeout: 30000,
-      connectTimeout: 30000, // Aumentado para 30s devido à latência de handshake SSL
+      database: dbName,
+      connectionLimit: 1, // Reduzido para evitar contenção no serverless
+      connectTimeout: 30000,
       ssl: {
         rejectUnauthorized: false, // Necessário para TiDB Cloud Serverless
         minVersion: 'TLSv1.2',      // Garante conformidade com o gateway TiDB

@@ -22,10 +22,12 @@ function createPrismaClient() {
   try {
     // Para Aiven MySQL, o motor nativo do Prisma (Rust) é mais estável com SSL
     // do que o driver mariadb-connector-js através do adapter.
-    // Importante: Passamos a url explicitamente em datasourceUrl.
+    // Importante: Passamos a url explicitamente em datasources.
     if (url.includes('aivencloud.com') || url.includes('ssl-mode=')) {
       return new PrismaClient({
-        datasourceUrl: url
+        datasources: {
+          db: { url }
+        }
       } as any);
     }
 
@@ -35,7 +37,9 @@ function createPrismaClient() {
     console.error('❌ Erro ao inicializar Prisma:', error);
     // Fallback desesperado: tenta inicializar o padrão com a URL se disponível
     return new PrismaClient({
-      datasourceUrl: url || 'mysql://localhost:3306/unused'
+      datasources: {
+        db: { url: url || 'mysql://localhost:3306/unused' }
+      }
     } as any);
   }
 }

@@ -6,14 +6,11 @@ declare global {
 }
 
 /**
- * Cria o cliente Prisma com o Driver Adapter MariaDB.
- * O Prisma v7 (engineType: client) EXIGE um adapter ou accelerateUrl.
+ * Cria o cliente Prisma com o Driver Adapter MariaDB otimizado para TiDB Cloud.
  */
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
 
-  // No build da Vercel, a DATABASE_URL pode não estar presente.
-  // Usamos um mock adapter para satisfazer o construtor durante o build.
   if (!url) {
     console.warn('🚧 [PRISMA] DATABASE_URL não encontrada. Usando Mock Adapter para o build.');
     const mockAdapter = {
@@ -30,8 +27,9 @@ function createPrismaClient(): PrismaClient {
     const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
     const mariadb = require('mariadb');
 
-    // Parse da URL para configurar o pool manualmente (evita bugs de query string no driver)
     const urlObj = new URL(url);
+
+    // Configuração de pool mais robusta e tolerante a falhas de rede
     const pool = mariadb.createPool({
       host: urlObj.hostname,
       port: parseInt(urlObj.port) || 4000,
@@ -39,15 +37,25 @@ function createPrismaClient(): PrismaClient {
       password: decodeURIComponent(urlObj.password),
       database: urlObj.pathname.replace('/', ''),
       connectionLimit: 10,
-      connectTimeout: 15000,
-      ssl: { rejectUnauthorized: false }, // Obrigatório para TiDB Cloud
+      idleTimeout: 30000,     // 30s para conexões ociosas
+      connectTimeout: 20000,  // Aumentado para 20s para handshake SSL lento
+      ssl: {
+        rejectUnauthorized: false, // Necessário para TiDB Cloud Serverless
+      },
+    });
+
+    // Logging de eventos do pool para diagnóstico
+    pool.on('error', (err: any) => {
+      console.error('🌊 [PRISMA POOL ERROR]:', err.message);
     });
 
     const adapter = new PrismaMariaDb(pool);
-    return new PrismaClient({ adapter });
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    });
   } catch (error: any) {
-    console.error('❌ [PRISMA] Erro fatal ao inicializar adapter:', error.message);
-    // Em caso de erro catastrófico, retorna cliente padrão (que falhará em runtime, mas deixará o log)
+    console.error('❌ [PRISMA] Falha crítica ao inicializar driver MariaDB:', error.message);
     return new PrismaClient();
   }
 }
@@ -55,13 +63,13 @@ function createPrismaClient(): PrismaClient {
 /**
  * Proxy Lazy: Garante que o PrismaClient só seja instanciado quando os dados 
  * forem efetivamente acessados (e.g., .raffle.findMany()).
- * Isso protege o processo de build da Vercel.
  */
 const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
     if (typeof prop === 'symbol' || prop === '$$typeof') return (target as any)[prop];
 
     if (!globalThis.prismaGlobal) {
+      console.log('🔄 [PRISMA] Tentando conectar ao banco pela primeira vez...');
       globalThis.prismaGlobal = createPrismaClient();
     }
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createPixPayment } from '@/lib/pix';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/checkout
 // Body: { ticketNumbers: number[], buyerName: string, buyerPhone: string }
 export async function POST(request: NextRequest) {

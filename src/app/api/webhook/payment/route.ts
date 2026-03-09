@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getPixPaymentStatus } from '@/lib/pix';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/webhook/payment
 // Recebe notificações de pagamento do Mercado Pago
 export async function POST(request: NextRequest) {

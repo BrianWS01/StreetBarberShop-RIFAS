@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/payment/[transactionId]
 // Usado pelo front-end para polling: verifica se o PIX foi pago
 export async function GET(
@@ -17,7 +19,7 @@ export async function GET(
         const transaction = await prisma.transaction.findUnique({
             where: { id: transactionId },
             include: {
-                ticket: {
+                tickets: {
                     select: { number: true, status: true },
                     orderBy: { number: 'asc' },
                 },
@@ -32,7 +34,7 @@ export async function GET(
             transactionId: transaction.id,
             status: transaction.status, // PENDING | PAID | FAILED | EXPIRED
             amount: Number(transaction.amount),
-            tickets: transaction.ticket,
+            tickets: transaction.tickets,
             createdAt: transaction.createdAt,
         });
     } catch (error) {

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     const results: any = {
-        version: "v1.2-native-library-check",
+        version: "v1.3-adapter-final-fix",
         env: {
             DATABASE_URL: process.env.DATABASE_URL ? 'PRESENTE (Oculto)' : 'FALTANDO',
             NODE_ENV: process.env.NODE_ENV,

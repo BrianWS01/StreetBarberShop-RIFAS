@@ -6,15 +6,14 @@ declare global {
 }
 
 /**
- * Função para criar a instância do Prisma de forma segura para o build da Vercel.
+ * Função interna para criar a instância do Prisma.
+ * Só deve ser chamada em tempo de execução, nunca no build.
  */
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
 
-  // No Prisma v7 sem URL no schema, o construtor EXIGE um adapter ou accelerateUrl.
-  // Se não tivermos URL (ambiente de build), passamos um "mock adapter" para não quebrar o processo.
   if (!url) {
-    console.log('🚧 [PRISMA] Inicializando com Mock Adapter (Ambiente de Build)');
+    console.warn('⚠️ [PRISMA] DATABASE_URL não encontrada. Usando Mock Adapter para compatibilidade.');
     const mockAdapter = {
       name: 'mock-adapter',
       modelName: 'mysql',
@@ -29,23 +28,43 @@ function createPrismaClient(): PrismaClient {
     const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
     const mariadb = require('mariadb');
 
-    console.log('🔄 [PRISMA] Conectando ao TiDB Cloud via MariaDB Adapter...');
     const pool = mariadb.createPool(url);
     const adapter = new PrismaMariaDb(pool);
 
     return new PrismaClient({ adapter });
   } catch (error) {
-    console.error('❌ [PRISMA] Falha ao carregar driver: usando fallback seguro.');
+    console.error('❌ [PRISMA] Erro ao carregar adapter:', error);
     return new PrismaClient({
       adapter: { name: 'fallback', modelName: 'mysql', queryRaw: async () => ({}) } as any
     });
   }
 }
 
-const prisma = globalThis.prismaGlobal ?? createPrismaClient();
+/**
+ * TRUE LAZY EXPORT:
+ * Exportamos um objeto que se comporta como o PrismaClient, mas só instancia
+ * o cliente real quando qualquer propriedade (como .raffle ou .user) for acessada.
+ */
+const prisma = new Proxy({} as PrismaClient, {
+  get: (target, prop) => {
+    // Ignora propriedades internas do sistema ou Symbol.toStringTag
+    if (typeof prop === 'symbol' || prop === '$$typeof') return (target as any)[prop];
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prismaGlobal = prisma;
-}
+    // Se a instância real ainda não existe, cria ela agora
+    if (!globalThis.prismaGlobal) {
+      globalThis.prismaGlobal = createPrismaClient();
+    }
+
+    const instance = globalThis.prismaGlobal;
+    const value = (instance as any)[prop];
+
+    // Se for uma função (findMany, etc), bindamos ao o objeto real
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+
+    return value;
+  }
+});
 
 export default prisma;

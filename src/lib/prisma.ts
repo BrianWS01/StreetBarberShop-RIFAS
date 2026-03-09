@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
 // Singleton global — evita múltiplas conexões em hot-reload (dev) e serverless (prod)
 declare global {
@@ -9,22 +8,17 @@ declare global {
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
 
-  // Durante o build sem DATABASE_URL, retorna cliente sem adapter
-  // Isso é seguro pois as rotas são force-dynamic e nunca serão chamadas no build
   if (!url) {
-    console.warn('⚠️ DATABASE_URL não definida. Cliente Prisma inativo.');
-    // Retorna um proxy que vai explodir apenas se usar, nunca durante o import
-    return new PrismaClient() as PrismaClient;
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ DATABASE_URL não definida operacionalmente no servidor.');
+    }
+    // Retorna cliente padrão que lerá do ambiente se disponível depois
+    return new PrismaClient();
   }
 
-  try {
-    const adapter = new PrismaMariaDb(url);
-    return new PrismaClient({ adapter } as any) as PrismaClient;
-  } catch (error) {
-    console.error('❌ Erro ao inicializar Prisma adapter:', error);
-    // Fallback: tenta sem adapter (Prisma lerá do ambiente)
-    return new PrismaClient() as PrismaClient;
-  }
+  // Para TiDB Cloud, o motor nativo do Prisma é o mais recomendado e estável.
+  // Ele lida automaticamente com SSL e conexões MySQL/TiDB.
+  return new PrismaClient();
 }
 
 const prisma = globalThis.prismaGlobal ?? createPrismaClient();

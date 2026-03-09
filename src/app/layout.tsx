@@ -9,6 +9,9 @@ const montserrat = Montserrat({ subsets: ['latin'], variable: '--font-montserrat
 export const metadata: Metadata = {
   title: 'Street Barbershop - Rifa Especial',
   description: 'Concorra a um PS5 ou R$ 1.500 no Pix! Sorteio especial da Street Barbershop.',
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({

@@ -1,6 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import * as mariadb from 'mariadb';
 
 // Singleton global para evitar múltiplas conexões em desenvolvimento
 declare global {
@@ -14,26 +12,30 @@ function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
 
   if (!url) {
-    // No build da Vercel, o DATABASE_URL pode estar ausente.
-    // Retornamos uma instância padrão (que vai reclamar se for usada sem url no schema, 
-    // mas o Proxy protege o build).
+    console.error('⚠️ [PRISMA] DATABASE_URL não encontrada no ambiente!');
     return new PrismaClient();
   }
 
   try {
-    // No Prisma v7 com MariaDB/TiDB, é obrigatório usar um Driver Adapter 
-    // se a URL não estiver no schema.prisma.
+    // Usamos require para evitar problemas de tipos/importação de export default vs *
+    const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
+    const mariadb = require('mariadb');
+
+    console.log('🔄 [PRISMA] Inicializando pool MariaDB para o Prisma v7...');
+
     const pool = mariadb.createPool(url);
     const adapter = new PrismaMariaDb(pool);
+
     return new PrismaClient({ adapter });
   } catch (error) {
-    console.error('❌ Erro ao instanciar Prisma com adapter:', error);
+    console.error('❌ [PRISMA] Falha fatal ao criar adapter:', error);
+    // Fallback: se falhar o adapter, tenta o padrão (que pode falhar se não houver url no schema)
     return new PrismaClient();
   }
 }
 
 /**
- * Proxy para inicialização Lazy. Impede que o Prisma tente conectar durante o build.
+ * Proxy para inicialização Lazy. Impede falhas durante o build "collect page data".
  */
 const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {

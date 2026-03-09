@@ -6,70 +6,47 @@ declare global {
 }
 
 /**
- * Cria o cliente Prisma com o Driver Adapter MariaDB de forma estável.
- * O TiDB Cloud exige SSL, mas o driver mariadb precisa que isso seja 
- * passado explicitamente no objeto de configuração do pool.
+ * Cria o cliente Prisma de forma nativa e eficiente.
+ * Usamos a inicialização padrão que lê a DATABASE_URL do ambiente.
  */
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
 
-  if (!url) {
-    console.warn('🚧 [PRISMA] DATABASE_URL não encontrada (build ou ambiente restrito).');
-    // Mock adapter para não quebrar o build na Vercel
-    const mockAdapter = {
-      name: 'mock', modelName: 'mysql',
-      queryRaw: async () => ({ columns: [], rows: [] }),
-      executeRaw: async () => 0,
-      transaction: async (o: any, cb: any) => cb({})
-    };
-    return new PrismaClient({ adapter: mockAdapter as any });
+  // Se não houver URL (ambiente de build), não levantamos um erro fatal agora.
+  // O Proxy abaixo garante que o cliente só será realmente instanciado em runtime.
+  if (!url && process.env.NODE_ENV === 'production') {
+    console.warn('🚧 [PRISMA] DATABASE_URL não encontrada no build. O Proxy adiará a conexão.');
   }
 
-  try {
-    const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
-    const mariadb = require('mariadb');
-
-    // Parse da URL para o pool. Removemos os parâmetros de query da string 
-    // para evitar que o driver tente interpretá-los de forma errada.
-    const urlObj = new URL(url);
-
-    const pool = mariadb.createPool({
-      host: urlObj.hostname,
-      port: parseInt(urlObj.port) || 4000,
-      user: decodeURIComponent(urlObj.username),
-      password: decodeURIComponent(urlObj.password),
-      database: urlObj.pathname.replace('/', ''),
-      connectionLimit: 10,
-      connectTimeout: 15000,
-      // SSL é mandatório para TiDB Cloud
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
-    const adapter = new PrismaMariaDb(pool);
-    return new PrismaClient({ adapter });
-  } catch (error: any) {
-    console.error('❌ [PRISMA] Falha fatal na conexão:', error?.message);
-    throw error;
-  }
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 }
 
 /**
- * Proxy Lazy: o PrismaClient só é instanciado no primeiro acesso a dados.
- * Isso protege o processo de build "collect page data" do Next.js.
+ * Proxy Lazy: Garante que o PrismaClient só seja instanciado quando os dados 
+ * forem efetivamente acessados (e.g., .raffle.findMany()).
+ * Isso permite que o build da Vercel (`next build`) passe sem a DATABASE_URL.
  */
 const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
+    // Ignora símbolos internos do Node.js
     if (typeof prop === 'symbol' || prop === '$$typeof') return (target as any)[prop];
 
     if (!globalThis.prismaGlobal) {
+      console.log('🔄 [PRISMA] Inicializando Driver Nativo (First Access)...');
       globalThis.prismaGlobal = createPrismaClient();
     }
 
     const instance = globalThis.prismaGlobal;
     const value = (instance as any)[prop];
-    return typeof value === 'function' ? value.bind(instance) : value;
+
+    // Bind de funções (findMany, update, etc) para manter o contexto da instância
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+
+    return value;
   }
 });
 

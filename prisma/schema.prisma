@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model raffle {
@@ -15,7 +16,7 @@ model raffle {
   status         raffle_status @default(DRAFT)
   winnerNumber   Int?
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime      @updatedAt
   ticket         ticket[]
 }
 
@@ -45,7 +46,7 @@ model transaction {
   qrCode       String?            @db.Text
   qrCodeBase64 String?            @db.Text
   createdAt    DateTime           @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime           @updatedAt
   ticket       ticket[]
 }
 
@@ -55,7 +56,7 @@ model user {
   phone     String    @unique(map: "User_phone_key")
   role      user_role @default(USER)
   createdAt DateTime  @default(now())
-  updatedAt DateTime
+  updatedAt DateTime  @updatedAt
   ticket    ticket[]
 }
 

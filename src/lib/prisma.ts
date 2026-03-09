@@ -10,14 +10,6 @@ declare global {
  * Usamos a inicialização padrão que lê a DATABASE_URL do ambiente.
  */
 function createPrismaClient(): PrismaClient {
-  const url = process.env.DATABASE_URL;
-
-  // Se não houver URL (ambiente de build), não levantamos um erro fatal agora.
-  // O Proxy abaixo garante que o cliente só será realmente instanciado em runtime.
-  if (!url && process.env.NODE_ENV === 'production') {
-    console.warn('🚧 [PRISMA] DATABASE_URL não encontrada no build. O Proxy adiará a conexão.');
-  }
-
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });

@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import mariadb from 'mariadb';
 
 // Singleton global para evitar múltiplas conexões em desenvolvimento
 declare global {
@@ -7,29 +9,34 @@ declare global {
 
 /**
  * Função interna para criar a instância do Prisma.
- * Só é chamada quando o banco for realmente acessado.
  */
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
 
   if (!url) {
-    // No build da Vercel, o DATABASE_URL pode estar ausente ou o ambiente ser restrito.
-    // Retornamos uma instância padrão que não deve tentar conectar até ser consultada.
+    // No build da Vercel, o DATABASE_URL pode estar ausente.
+    // Retornamos uma instância padrão (que vai reclamar se for usada sem url no schema, 
+    // mas o Proxy protege o build).
     return new PrismaClient();
   }
 
-  // Inicialização padrão do Prisma 7
-  return new PrismaClient();
+  try {
+    // No Prisma v7 com MariaDB/TiDB, é obrigatório usar um Driver Adapter 
+    // se a URL não estiver no schema.prisma.
+    const pool = mariadb.createPool(url);
+    const adapter = new PrismaMariaDb(pool);
+    return new PrismaClient({ adapter });
+  } catch (error) {
+    console.error('❌ Erro ao instanciar Prisma com adapter:', error);
+    return new PrismaClient();
+  }
 }
 
 /**
- * Exportamos um Proxy que adia a criação do PrismaClient até a primeira propriedade ser acessada.
- * Isso resolve o erro "Failed to collect page data" durante o build, 
- * pois o código de inicialização do Prisma não roda no topo do módulo.
+ * Proxy para inicialização Lazy. Impede que o Prisma tente conectar durante o build.
  */
 const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
-    // Se a instância global ainda não existe, cria ela agora
     if (!globalThis.prismaGlobal) {
       globalThis.prismaGlobal = createPrismaClient();
     }
@@ -37,7 +44,6 @@ const prisma = new Proxy({} as PrismaClient, {
     const instance = globalThis.prismaGlobal;
     const value = (instance as any)[prop];
 
-    // Se for uma função (como findMany, update, etc), bindamos ao o objeto real
     if (typeof value === 'function') {
       return value.bind(instance);
     }

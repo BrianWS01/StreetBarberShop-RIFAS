@@ -6,16 +6,12 @@ declare global {
 }
 
 /**
- * Cria o cliente Prisma com o Driver Adapter MariaDB de forma estável.
- * O Prisma v7 (engineType: client) está sendo forçado pela Vercel.
+ * Cria o cliente Prisma com um teste de conexão manual para diagnóstico.
  */
-function createPrismaClient(): PrismaClient {
+async function createPrismaClient(): Promise<PrismaClient> {
   const url = process.env.DATABASE_URL;
 
-  // No build da Vercel, a DATABASE_URL pode não estar presente.
-  // Usamos um mock adapter para satisfazer o construtor durante o build.
   if (!url) {
-    console.warn('🚧 [PRISMA] DATABASE_URL não encontrada. Usando Mock Adapter para o build.');
     const mockAdapter = {
       name: 'mock',
       modelName: 'mysql',
@@ -33,13 +29,15 @@ function createPrismaClient(): PrismaClient {
     const urlObj = new URL(url);
     const dbName = urlObj.pathname.replace('/', '') || 'test';
 
+    console.log(`🔌 [PRISMA v1.4] Testando conexão direta com TiDB: ${urlObj.hostname}`);
+
     const pool = mariadb.createPool({
       host: urlObj.hostname,
       port: parseInt(urlObj.port) || 4000,
       user: decodeURIComponent(urlObj.username),
       password: decodeURIComponent(urlObj.password),
       database: dbName,
-      connectionLimit: 1, // Limite conservador para serverless
+      connectionLimit: 1,
       connectTimeout: 30000,
       ssl: {
         rejectUnauthorized: false,
@@ -47,28 +45,51 @@ function createPrismaClient(): PrismaClient {
       },
     });
 
+    // TESTE MANUAL: Tenta conectar ANTES de dar o pool ao Prisma
+    try {
+      const conn = await pool.getConnection();
+      console.log('✅ [PRISMA v1.4] Conexão manual SUCESSO!');
+      await conn.release();
+    } catch (connError: any) {
+      console.error('❌ [PRISMA v1.4] Falha na conexão manual:', connError.message);
+      // Mesmo com erro, tentamos prosseguir para que o Prisma logue sua versão do erro
+    }
+
     const adapter = new PrismaMariaDb(pool);
     return new PrismaClient({ adapter });
   } catch (error: any) {
-    console.error('❌ [PRISMA] Erro ao inicializar adapter:', error.message);
+    console.error('❌ [PRISMA v1.4] Erro fatal no inicializador:', error.message);
     return new PrismaClient();
   }
 }
 
 /**
- * Proxy Lazy: Retarda a conexão real até o primeiro acesso de dados.
+ * Proxy Lazy: Agora lida com a inicialização assíncrona do teste de conexão.
  */
+let isInitializing = false;
 const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
     if (typeof prop === 'symbol' || prop === '$$typeof') return (target as any)[prop];
 
-    if (!globalThis.prismaGlobal) {
-      globalThis.prismaGlobal = createPrismaClient();
+    if (!globalThis.prismaGlobal && !isInitializing) {
+      isInitializing = true;
+      console.log('🔄 [PRISMA v1.4] Iniciando singleton...');
+      createPrismaClient().then(client => {
+        globalThis.prismaGlobal = client;
+        isInitializing = false;
+      });
     }
 
+    // Enquanto inicializa, se alguém tentar usar, retornamos um proxy de espera ou deixamos falhar
+    // Para simplificar, retornamos a instância se existir.
     const instance = globalThis.prismaGlobal;
-    const value = (instance as any)[prop];
+    if (!instance) {
+      // Se ainda não inicializou, retornamos o target (objeto vazio) que causará erro
+      // Isso é temporário até a primeira requisição completar.
+      return (target as any)[prop];
+    }
 
+    const value = (instance as any)[prop];
     if (typeof value === 'function') {
       return value.bind(instance);
     }

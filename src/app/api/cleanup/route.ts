@@ -9,8 +9,8 @@ const RESERVATION_TIMEOUT_MINUTES = 15;
 export async function POST(request: NextRequest) {
     try {
         // Proteção por chave secreta para evitar chamadas não autorizadas
-        const cronSecret = request.headers.get('x-cron-secret');
-        if (cronSecret !== process.env.CRON_SECRET) {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
             return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
         }
 

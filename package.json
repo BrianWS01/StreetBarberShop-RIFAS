@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "cross-env PRISMA_CLI_QUERY_ENGINE_TYPE=library prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.4.2",
@@ -31,6 +31,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

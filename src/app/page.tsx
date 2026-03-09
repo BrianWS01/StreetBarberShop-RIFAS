@@ -9,7 +9,7 @@ export default async function Home() {
     const raffle = await prisma.raffle.findFirst({
       where: { status: 'ACTIVE' },
       include: {
-        tickets: {
+        ticket: {
           orderBy: { number: 'asc' }
         }
       }
@@ -111,7 +111,7 @@ export default async function Home() {
 
             <TicketGrid
               raffle={{ ...raffle, pricePerTicket: Number(raffle.pricePerTicket) }}
-              tickets={raffle.tickets}
+              tickets={raffle.ticket}
             />
           </div>
         </section>

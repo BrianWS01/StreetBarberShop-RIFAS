@@ -1,12 +1,44 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import * as mariadb from 'mariadb';
 
-// Singleton robusto para o Prisma sem drivers externos manuais
-// Isso utiliza o motor nativo do Prisma (Rust), que gerencia pool e SSL
-// de forma muito mais eficiente na Vercel.
+// Singleton para o PrismaClient
+// Em hospedagem compartilhada (Hostinger), usamos Driver Adapters
+// para evitar problemas com binários do Rust e garantir compatibilidade.
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: ['error', 'warn'],
-  });
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    console.warn('⚠️ [PRISMA] DATABASE_URL não encontrada no ambiente.');
+    return new PrismaClient();
+  }
+
+  try {
+    const urlObj = new URL(url);
+    const dbName = urlObj.pathname.replace('/', '') || 'test';
+
+    console.log(`🔌 [PRISMA] Conectando via Driver Adapter: ${urlObj.hostname}`);
+
+    const pool = mariadb.createPool({
+      host: urlObj.hostname,
+      port: parseInt(urlObj.port) || 4000,
+      user: decodeURIComponent(urlObj.username),
+      password: decodeURIComponent(urlObj.password),
+      database: dbName,
+      connectionLimit: 5,
+      connectTimeout: 30000,
+      ssl: {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
+      },
+    });
+
+    const adapter = new PrismaMariaDb(pool as any);
+    return new PrismaClient({ adapter });
+  } catch (error: any) {
+    console.error('❌ [PRISMA] Erro ao inicializar adaptador:', error.message);
+    return new PrismaClient();
+  }
 };
 
 declare global {

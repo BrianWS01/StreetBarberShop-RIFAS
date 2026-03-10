@@ -141,9 +141,8 @@ export default async function Home() {
           Estamos realizando uma manutenção rápida em nossos sistemas para garantir a melhor experiência para você.
           Por favor, tente novamente em alguns instantes.
         </p>
-        <div className="mt-8 p-4 border border-brand/20 rounded bg-brand/5 text-xs text-brand/60 font-mono max-w-2xl overflow-auto">
-          <p className="font-bold mb-2 text-brand">Erro de Diagnóstico:</p>
-          {error instanceof Error ? error.message : 'SERVER_SIDE_EXCEPTION_HANDLED'}
+        <div className="mt-8 p-4 border border-brand/20 rounded bg-brand/5 text-xs text-brand/60 font-mono">
+          SERVER_SIDE_EXCEPTION_HANDLED
         </div>
       </div>
     )

@@ -34,9 +34,13 @@ export async function GET(request: NextRequest) {
             name: error.name,
             message: error.message,
             code: error.code,
-            clientVersion: error.clientVersion,
-            stack: error.stack?.split('\n').slice(0, 5), // Primeiras 5 linhas da stack
+            stack: error.stack?.split('\n').slice(0, 10),
         };
+        
+        // Verifica se é erro de SSL/Certificado
+        if (error.message?.includes('SSL') || error.message?.includes('certificate')) {
+            results.hint = "Possível problema de certificado SSL com o TiDB Cloud.";
+        }
     }
 
     return NextResponse.json(results);

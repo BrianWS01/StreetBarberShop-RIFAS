@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import mariadb from 'mariadb';
+import * as mariadb from 'mariadb';
 
 // Padrão Singleton para o PrismaClient recomendado pela Next.js
 // Evita a criação de múltiplas instâncias em desenvolvimento (Hot Reload)

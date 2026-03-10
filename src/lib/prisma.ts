@@ -32,7 +32,7 @@ const prismaClientSingleton = () => {
       },
     });
 
-    const adapter = new PrismaMariaDb(pool);
+    const adapter = new PrismaMariaDb(pool as any);
     return new PrismaClient({ adapter });
   } catch (error: any) {
     console.error('❌ [PRISMA] Erro ao inicializar adaptador:', error.message);

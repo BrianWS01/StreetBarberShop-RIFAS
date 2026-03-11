@@ -2,58 +2,39 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import * as mariadb from 'mariadb';
 
-// Helper para inicializar o Prisma de forma inteligente
-// Usa Native Engine (Rust) localmente para velocidade e estabilidade
-// Usa Driver Adapter (JS) na Hostinger para compatibilidade
+// Configuração de emergência para entrega em minutos
 const prismaClientSingleton = () => {
   const url = process.env.DATABASE_URL;
-
-  if (!url) {
-    console.warn('⚠️ [PRISMA] DATABASE_URL não encontrada.');
-    return new PrismaClient();
-  }
-
-  // Verifica se estamos em ambiente de desenvolvimento local
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  
-  // Se for local ou se NÃO tivermos o Driver Adapter habilitado no schema, 
-  // tentamos usar o nativo primeiro.
-  if (isDevelopment) {
-    console.log('🔌 [PRISMA] Usando Motor Nativo (Localhost)');
-    return new PrismaClient();
-  }
+  if (!url) return new PrismaClient() as any;
 
   try {
     const urlObj = new URL(url);
     const dbName = urlObj.pathname.replace('/', '') || 'test';
-    const isLocalHost = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
+    
+    console.log(`🚀 [EMERGÊNCIA] Conectando ao banco Hostinger via IP: ${urlObj.hostname}`);
 
-    console.log(`🔌 [PRISMA] Usando Driver Adapter (Hostinger/Produção): ${urlObj.hostname}`);
-
-    const poolConfig: any = {
+    const pool = mariadb.createPool({
       host: urlObj.hostname,
       port: parseInt(urlObj.port) || 3306,
       user: decodeURIComponent(urlObj.username),
       password: decodeURIComponent(urlObj.password),
       database: dbName,
-      connectionLimit: 10,
-      connectTimeout: 20000,
-    };
+      connectionLimit: 20, // Aumentado para suportar mais requisições
+      connectTimeout: 40000, // 40 segundos para o socket inicial
+      acquireTimeout: 40000, // 40 segundos para pegar a conexão
+      noDelay: true,
+      compress: true, // Tenta comprimir dados para diminuir latência local->remoto
+    });
 
-    // SSL apenas para conexões remotas (não localhost)
-    if (!isLocalHost) {
-      poolConfig.ssl = {
-        rejectUnauthorized: false
-      };
-    }
-
-    const pool = mariadb.createPool(poolConfig);
     const adapter = new PrismaMariaDb(pool as any);
     
-    return new PrismaClient({ adapter });
+    return new PrismaClient({ 
+      adapter,
+      log: ['error'] 
+    });
   } catch (error: any) {
-    console.error('❌ [PRISMA] Erro ao carregar adaptador, tentando modo nativo:', error.message);
-    return new PrismaClient();
+    console.error('❌ Erro crítico:', error.message);
+    return new PrismaClient() as any;
   }
 };
 

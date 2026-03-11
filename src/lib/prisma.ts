@@ -2,6 +2,9 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import * as mariadb from 'mariadb';
 
+// Helper para inicializar o Prisma de forma inteligente
+// Usa Native Engine (Rust) localmente para velocidade e estabilidade
+// Usa Driver Adapter (JS) na Hostinger para compatibilidade
 const prismaClientSingleton = () => {
   const url = process.env.DATABASE_URL;
 
@@ -10,12 +13,22 @@ const prismaClientSingleton = () => {
     return new PrismaClient();
   }
 
+  // Verifica se estamos em ambiente de desenvolvimento local
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Se for local ou se NÃO tivermos o Driver Adapter habilitado no schema, 
+  // tentamos usar o nativo primeiro.
+  if (isDevelopment) {
+    console.log('🔌 [PRISMA] Usando Motor Nativo (Localhost)');
+    return new PrismaClient();
+  }
+
   try {
     const urlObj = new URL(url);
     const dbName = urlObj.pathname.replace('/', '') || 'test';
-    const isLocal = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
+    const isLocalHost = urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
 
-    console.log(`🔌 [PRISMA] Conectando ao Banco: ${urlObj.hostname} (Local: ${isLocal})`);
+    console.log(`🔌 [PRISMA] Usando Driver Adapter (Hostinger/Produção): ${urlObj.hostname}`);
 
     const poolConfig: any = {
       host: urlObj.hostname,
@@ -24,27 +37,22 @@ const prismaClientSingleton = () => {
       password: decodeURIComponent(urlObj.password),
       database: dbName,
       connectionLimit: 10,
-      connectTimeout: 60000, // Aumentado para 60s
+      connectTimeout: 20000,
     };
 
-    // Só usa SSL para conexões externas (como TiDB Cloud)
-    // Conexões locais da Hostinger geralmente não suportam/precisam de SSL
-    if (!isLocal) {
+    // SSL apenas para conexões remotas (não localhost)
+    if (!isLocalHost) {
       poolConfig.ssl = {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
+        rejectUnauthorized: false
       };
     }
 
     const pool = mariadb.createPool(poolConfig);
     const adapter = new PrismaMariaDb(pool as any);
     
-    return new PrismaClient({ 
-      adapter,
-      log: ['error', 'warn'] 
-    });
+    return new PrismaClient({ adapter });
   } catch (error: any) {
-    console.error('❌ [PRISMA] Erro crítico:', error.message);
+    console.error('❌ [PRISMA] Erro ao carregar adaptador, tentando modo nativo:', error.message);
     return new PrismaClient();
   }
 };
